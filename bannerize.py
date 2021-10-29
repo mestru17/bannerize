@@ -1,22 +1,54 @@
+#!/usr/bin/env python3
+
+"""Bannerizes sections and chapters in LaTeX markdown when run as a script.
+
+When not run as a script, this module mainly exports the bannerize() function,
+which takes any iterable of lines and returns a new iterable with the same
+lines but with injected banners. This makes it possible to use it with
+practically any kind of input - i.e. files, stdin, lists, etc.
+
+Script Example:
+    echo "Bannerize somefile.tex and print it to stdout."
+    cat somefile.tex | ./bannerize.py
+
+Code Example:
+    # Bannerize somefile.tex and print it to stdout.
+    with open("somefile.tex", 'r') as f:
+        for line in bannerize(f):
+            print(line)
+"""
+
 import re
 import sys
-from typing import Iterable, Union
+from typing import Generator, Iterable, Union
 
 TITLE_REGEX = re.compile("^.*(?:chapter|section)\\{(.+?)\\}.*$")
 
-def main():
-    for line in bannerize(get_lines()):
+
+def _main():
+    for line in bannerize(_get_lines()):
         print(line, end="")
 
 
-def get_lines() -> Iterable[str]:
+def _get_lines() -> Iterable[str]:
+    """Returns a line iterable from program arguments if possible and stdin otherwise."""
     if len(sys.argv) >= 2:
         return sys.argv[1:]
 
     return (line for line in sys.stdin)
 
 
-def bannerize(lines: Iterable[str]) -> Iterable[str]:
+def bannerize(lines: Iterable[str]) -> Generator[str, None, None]:
+    """Transforms a line iterable into a generator with injected banners.
+
+    Does not modify the given iterable besides iterating over it.
+
+    Args:
+        lines: Line iterable to inject banners into.
+
+    Yields:
+        The same lines that was given as input with injected lines as well.
+    """
     for line in lines:
         if get_title(line):
             for banner_line in new_banner_stream(line):
@@ -24,11 +56,32 @@ def bannerize(lines: Iterable[str]) -> Iterable[str]:
         yield line
 
 
-def new_banner(line: str) -> str:
-    return "\n".join(new_banner_stream(line))
+def get_title(section_line: str) -> Union[str, None]:
+    """Attempts to extract the title from a given LaTeX section or chapter line.
+
+    Args:
+        section_line: LaTeX section or chapter line.
+
+    Returns:
+        The section/chapter title if the given line was valid and None otherwise.
+    """
+    title_matches = TITLE_REGEX.findall(section_line)
+
+    if not title_matches or len(title_matches) == 0:
+        return None
+
+    return title_matches[0]
 
 
-def new_banner_stream(line: str) -> Iterable[str]:
+def new_banner_stream(line: str) -> Generator[str, None, None]:
+    """Creates a banner generator for a given LaTeX section/chapter line.
+
+    Args:
+        line: A valid LaTeX section or chapter line.
+
+    Yields:
+        Each line of the banner.
+    """
     title = get_title(line)
 
     if not title:
@@ -42,22 +95,30 @@ def new_banner_stream(line: str) -> Iterable[str]:
     yield rule
 
 
-def get_title(section_line: str) -> Union[str, None]:
-    title_matches = TITLE_REGEX.findall(section_line)
-
-    if not title_matches or len(title_matches) == 0:
-        return None
-
-    return title_matches[0]
-
-
 def new_rule(length: int) -> str:
+    """Creates a banner rule line with a given length.
+
+    Args:
+        length: The length of the rule.
+
+    Returns:
+        A new banner rule line with the given length.
+    """
     return "%" + "=" * (length - 2) + "%\n"
 
 
 def new_title_line(section_line: str, title: str) -> str:
-    section_line_width = len(section_line.strip())
+    """Creates a banner title line.
 
+    Args:
+        section_line: A valid LaTeX section or chapter line.
+        title: The title of the banner.
+
+    Returns:
+        A new banner title line with the given title and the same length as
+        the given line.
+    """
+    section_line_width = len(section_line.strip())
     title_start = section_line_width // 2 - len(title) // 2 - 1
     title_end = title_start + len(title)
 
@@ -76,5 +137,4 @@ def new_title_line(section_line: str, title: str) -> str:
 
 
 if __name__ == "__main__":
-    main()
-
+    _main()
