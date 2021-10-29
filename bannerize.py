@@ -6,7 +6,7 @@ TITLE_REGEX = re.compile("^.*(?:chapter|section)\\{(.+?)\\}.*$")
 
 def main():
     for line in bannerize(get_lines()):
-        print(line)
+        print(line, end="")
 
 
 def get_lines() -> Iterable[str]:
@@ -17,15 +17,11 @@ def get_lines() -> Iterable[str]:
 
 
 def bannerize(lines: Iterable[str]) -> Iterable[str]:
-    for line in strip_lines(lines):
+    for line in lines:
         if get_title(line):
             for banner_line in new_banner_stream(line):
                 yield banner_line
         yield line
-
-
-def strip_lines(lines: Iterable[str]) -> Iterable[str]:
-    return (line.strip() for line in lines)
 
 
 def new_banner(line: str) -> str:
@@ -39,7 +35,7 @@ def new_banner_stream(line: str) -> Iterable[str]:
         print("Could not parse title.")
         quit()
 
-    rule = new_rule(len(line))
+    rule = new_rule(len(line.strip()))
 
     yield rule
     yield new_title_line(line, title)
@@ -56,23 +52,25 @@ def get_title(section_line: str) -> Union[str, None]:
 
 
 def new_rule(length: int) -> str:
-    return "%" + "=" * (length - 2) + "%"
+    return "%" + "=" * (length - 2) + "%\n"
 
 
 def new_title_line(section_line: str, title: str) -> str:
-    title_start = len(section_line) // 2 - len(title) // 2 - 1
+    section_line_width = len(section_line.strip())
+
+    title_start = section_line_width // 2 - len(title) // 2 - 1
     title_end = title_start + len(title)
 
     line_elems = ["%"]
     i = 0
-    while i < len(section_line) - 2:
+    while i < section_line_width - 2:
         if i >= title_start and i < title_end:
             line_elems.append(title)
             i += len(title)
         else:
             line_elems.append(" ")
             i += 1
-    line_elems.append("%")
+    line_elems.append("%\n")
 
     return "".join(line_elems)
 
