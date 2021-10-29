@@ -1,5 +1,5 @@
 # bannerize
-bannerize is a command line script that reads lines of LaTeX markup (either as program arguments or from stdin) and inserts comment banners for each section and chapter.
+bannerize is a command line script that reads lines of LaTeX markup (either as program arguments or from stdin) and inserts comment banners for each section and chapter. This makes it easier to see where one section ends and the next one begins on long LaTeX documents.
 
 ## Example
 
