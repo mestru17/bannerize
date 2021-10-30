@@ -18,6 +18,7 @@ Code Example:
             print(line)
 """
 
+from pathlib import Path
 import re
 import sys
 from typing import Generator, Iterable, Union
@@ -26,8 +27,21 @@ TITLE_REGEX = re.compile("^.*(?:chapter|section)\\{(.+?)\\}.*$")
 
 
 def _main():
-    for line in bannerize(_get_lines()):
-        print(line, end="")
+    if len(sys.argv) >= 2 and sys.argv[1].endswith(".tex"):
+        files = (Path(s) for s in sys.argv[1:])
+        _bannerize_files(files)
+    else:
+        for line in bannerize(_get_lines()):
+            print(line, end="")
+
+
+def _bannerize_files(files: Iterable[Path]):
+    for file in files:
+        if is_latex_file(file):
+            bannerize_file(file)
+            print(f"Bannerized {file}.")
+        else:
+            print(f"Not a valid LaTeX file: {file}. Skipped.")
 
 
 def _get_lines() -> Iterable[str]:
@@ -36,6 +50,28 @@ def _get_lines() -> Iterable[str]:
         return sys.argv[1:]
 
     return (line for line in sys.stdin)
+
+
+def is_latex_file(path: Path) -> bool:
+    """Checks if a given path points to a valid existing LaTeX file."""
+    return path.suffix == ".tex" and path.is_file()
+
+
+def bannerize_file(file: Path):
+    """Bannerizes a given LaTeX file.
+
+    Replaces the given LaTeX file.
+
+    Args:
+        file: Path to a valid LaTeX file to bannerize.
+    """
+    swapfile = file.with_suffix(file.suffix + ".swp")
+
+    with file.open("r") as f, swapfile.open("w+") as sf:
+        for line in bannerize(f):
+            sf.write(line)
+
+    swapfile.replace(file)
 
 
 def bannerize(lines: Iterable[str]) -> Generator[str, None, None]:
